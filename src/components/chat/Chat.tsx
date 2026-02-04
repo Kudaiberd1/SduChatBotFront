@@ -14,8 +14,11 @@ import {addChat} from "@/store/chatSlice.ts";
 import MessageList from './MessageList.tsx';
 import MessageInput from './MessageInput.tsx';
 import WelcomeScreen from './WelcomeScreen.tsx';
+import toast, {Toaster} from 'react-hot-toast';
 
 const PAGE_SIZE = 10;
+
+const notify = (message: string) => toast.error(message);
 
 const ChatComponent: React.FC = () => {
     const dispatch = useDispatch();
@@ -38,6 +41,7 @@ const ChatComponent: React.FC = () => {
     const observerRef = useRef<IntersectionObserver | null>(null);
     const loadTriggerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const [isLimited, setIsLimited] = useState(false);
 
     const loadMessages = useCallback(async (pageToLoad: number) => {
         if (isFetchingRef.current || !isConnected || !selectedChat) {
@@ -226,9 +230,14 @@ const ChatComponent: React.FC = () => {
                 }
             }
             console.log('Message submission completed');
+            setIsLimited(false);
             scrollToBottom();
         } catch (error) {
             console.error('Failed to send message:', error);
+            if(error.originalStatus === 400) {
+                notify(error.data);
+                setIsLimited(true);
+            }
             setMessages(prev => prev.filter(m => m.id !== userMessage.id));
             setIsTransitioning(false);
         }
@@ -236,6 +245,7 @@ const ChatComponent: React.FC = () => {
 
     return (
         <div className="flex-1 flex flex-col bg-gray-50 h-full">
+            <Toaster />
             {selectedChat ? (
                 <div className={`flex-1 flex flex-col h-full transition-all duration-500 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
                     {/*<ChatHeader chat={selectedChat} />*/}
